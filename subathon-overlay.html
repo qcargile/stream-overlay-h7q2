@@ -184,7 +184,7 @@
 
   <div id="connStatus">
     <h4>Connection</h4>
-    <div class="cs"><span id="sBot" class="cdot"></span><span class="lbl2" id="lblBot">Streamer.bot</span><span class="st" id="stBot">…</span></div>
+    <div class="cs"><span id="sBot" class="cdot"></span><span class="lbl2" id="lblBot">Mix It Up</span><span class="st" id="stBot">…</span></div>
     <div class="cs"><span id="sTw" class="cdot"></span><span class="lbl2">Twitch</span><span class="st" id="stTw">…</span></div>
     <div class="cs"><span id="sKk" class="cdot"></span><span class="lbl2">Kick</span><span class="st" id="stKk">…</span></div>
   </div>
@@ -196,17 +196,8 @@
       <label class="ed-toggle-lbl"><input type="checkbox" id="chkShowCtrl" checked> Control bar</label>
     </div>
 
-    <h3>Connection</h3>
-    <label class="ed-lbl">Data source</label>
-    <select id="srcSel">
-      <option value="streamerbot">Streamer.bot</option>
-      <option value="mixitup">Mix It Up</option>
-    </select>
-    <div id="sbFields">
-      <label class="ed-lbl">Streamer.bot WebSocket URL</label>
-      <input type="text" id="wsUrl" placeholder="ws://127.0.0.1:8080/" />
-    </div>
-    <div id="miuFields" style="display:none">
+    <h3>Connection (Mix It Up)</h3>
+    <div id="miuFields">
       <label class="ed-lbl">Mix It Up API base</label>
       <input type="text" id="miuBase" placeholder="http://localhost:8911/api/v2" />
       <label class="ed-lbl">Twitch subs counter name</label>
@@ -322,7 +313,7 @@
     <button data-act="hide">Hide — press H to show</button>
     <span class="sep"></span>
     <span id="status">
-      <span class="cs"><span id="dotBot" class="cdot"></span>Bot</span>
+      <span class="cs"><span id="dotBot" class="cdot"></span>Mix It Up</span>
       <span class="cs"><span id="dotTw" class="cdot"></span>Twitch</span>
       <span class="cs"><span id="dotKk" class="cdot"></span>Kick</span>
     </span>
@@ -332,9 +323,7 @@
 /* ============================================================
    CONFIG
    ============================================================ */
-const CONFIG = { WS_URL:"ws://127.0.0.1:8080/", SECONDS_PER_SUB:120, STARTING_MINUTES:60, STARTING_SUBS:0, MAX_HOURS:0 };
-{ const savedWs=localStorage.getItem("sa.wsUrl"); if(savedWs) CONFIG.WS_URL=savedWs; }
-CONFIG.SOURCE   = localStorage.getItem("sa.source") || "streamerbot";
+const CONFIG = { SECONDS_PER_SUB:120, STARTING_MINUTES:60, STARTING_SUBS:0, MAX_HOURS:0 };
 CONFIG.MIU_BASE = localStorage.getItem("sa.miuBase") || "http://localhost:8911/api/v2";
 CONFIG.MIU_TW   = localStorage.getItem("sa.miuTw")   || "twitchsubs";
 CONFIG.MIU_KK   = localStorage.getItem("sa.miuKk")   || "kicksubs";
@@ -753,14 +742,11 @@ $("editPanel").addEventListener("click", e=>{
   else if(act==="tplSave"){ const nm=($("tplName").value||"").trim()||("Template "+(Object.keys(userTpl).length+1)); if(saveSelectionAsTpl(nm)) $("tplName").value=""; }
   else if(act==="tplDel"){ const nm=$("userTplSel").value; if(nm&&userTpl[nm]){ delete userTpl[nm]; saveUserTpl(); refreshUserTpl(); } }
   else if(act==="srcApply"){
-    const src=$("srcSel").value==="mixitup"?"mixitup":"streamerbot";
-    CONFIG.SOURCE=src; localStorage.setItem("sa.source",src);
-    const url=($("wsUrl").value||"").trim()||"ws://127.0.0.1:8080/"; CONFIG.WS_URL=url; localStorage.setItem("sa.wsUrl",url);
     const base=($("miuBase").value||"").trim()||"http://localhost:8911/api/v2"; CONFIG.MIU_BASE=base; localStorage.setItem("sa.miuBase",base);
     const tw=($("miuTw").value||"").trim(); CONFIG.MIU_TW=tw; localStorage.setItem("sa.miuTw",tw);
     const kk=($("miuKk").value||"").trim(); CONFIG.MIU_KK=kk; localStorage.setItem("sa.miuKk",kk);
     const pl=Math.max(1,num($("miuPoll").value,3)); CONFIG.MIU_POLL=pl; localStorage.setItem("sa.miuPoll",pl);
-    if($("wsStatus")){ $("wsStatus").textContent=src==="mixitup"?"Checking Mix It Up…":"Connecting…"; $("wsStatus").style.color="#889"; }
+    if($("wsStatus")){ $("wsStatus").textContent="Checking Mix It Up…"; $("wsStatus").style.color="#889"; }
     startSource();
   }
   else if(act==="reset"){ if(confirm("Reset EVERYTHING — all widgets, layout, timer, totals?")){ localStorage.clear(); location.reload(); } }
@@ -785,19 +771,11 @@ $("gSps").oninput=()=>{ CONFIG.SECONDS_PER_SUB=Math.max(1,num($("gSps").value,CO
 $("gTwSubs").oninput=updateCombo; $("gKkSubs").oninput=updateCombo;
 
 function updateCombo(){ const h=$("comboHint"); if(h) h.textContent="Combined total: "+(num($("gTwSubs").value,subsTwitch)+num($("gKkSubs").value,subsKick)).toLocaleString()+" subs"; }
-function syncSourceFields(){
-  const miu=$("srcSel") && $("srcSel").value==="mixitup";
-  if($("sbFields")) $("sbFields").style.display=miu?"none":"block";
-  if($("miuFields")) $("miuFields").style.display=miu?"block":"none";
-}
 function fillGlobals(){ $("gSps").value=CONFIG.SECONDS_PER_SUB; $("gTwSubs").value=subsTwitch; $("gKkSubs").value=subsKick; $("gBits").value=DATA.bits; $("gTips").value=DATA.tips;
-  if($("wsUrl")) $("wsUrl").value=CONFIG.WS_URL;
-  if($("srcSel")) $("srcSel").value=CONFIG.SOURCE;
   if($("miuBase")) $("miuBase").value=CONFIG.MIU_BASE;
   if($("miuTw")) $("miuTw").value=CONFIG.MIU_TW;
   if($("miuKk")) $("miuKk").value=CONFIG.MIU_KK;
   if($("miuPoll")) $("miuPoll").value=CONFIG.MIU_POLL;
-  syncSourceFields();
   updateCombo(); renderConn();
 }
 function setEditing(on){ document.body.classList.toggle("editing",on); if(on){ fillGlobals(); applySelClasses(); renderSelPanel(); } }
@@ -861,58 +839,29 @@ function setMoving(on){
 if(localStorage.getItem("sa.move")==="1") setMoving(true);
 
 /* ============================================================
-   STREAMER.BOT WEBSOCKET
+   MIX IT UP (Developer API counter polling)
    ============================================================ */
-let ws=null, retryTimer=null, botConnected=false, plat={twitch:null,kick:null};
+let botConnected=false, plat={twitch:null,kick:null};
 function dotClass(v){ return v===true?"cdot ok":v===false?"cdot bad":"cdot"; }
 function stText(v){ return v===true?"connected":v===false?"not connected":"…"; }
 function renderConn(){
   const tw=botConnected?plat.twitch:null, kk=botConnected?plat.kick:null;
   [["dotBot",botConnected],["dotTw",tw],["dotKk",kk],["sBot",botConnected],["sTw",tw],["sKk",kk]].forEach(p=>{ const e=$(p[0]); if(e) e.className=dotClass(p[1]); });
   [["stBot",botConnected],["stTw",tw],["stKk",kk]].forEach(p=>{ const e=$(p[0]); if(e) e.textContent=stText(p[1]); });
-  const isMiu=CONFIG.SOURCE==="mixitup", appName=isMiu?"Mix It Up":"Streamer.bot";
-  const lb=$("lblBot"); if(lb) lb.textContent=appName;
   const wsE=$("wsStatus");
   if(wsE){
     if(botConnected){
       const parts=[]; if(plat.twitch===true)parts.push("Twitch ✓"); if(plat.kick===true)parts.push("Kick ✓");
-      wsE.textContent="✓ Connected to "+appName+(parts.length?" — "+parts.join(", "):(isMiu?" — no matching counters found yet":""));
+      wsE.textContent="✓ Connected to Mix It Up"+(parts.length?" — "+parts.join(", "):" — no matching counters found yet");
       wsE.style.color=parts.length?"#8affd1":"#ffd76b";
     } else {
-      wsE.textContent = isMiu ? "✕ Not connected — is Mix It Up open with the Developer API enabled?" : "✕ Not connected — is Streamer.bot open with its WebSocket Server enabled?";
+      wsE.textContent="✕ Not connected — is Mix It Up open with the Developer API enabled?";
       wsE.style.color="#ff9aa6";
     }
   }
 }
-function requestBroadcaster(){ if(ws && ws.readyState===1){ try{ ws.send(JSON.stringify({request:"GetBroadcaster", id:"getbc"})); }catch(_){} } }
-function connect(){
-  try { ws=new WebSocket(CONFIG.WS_URL); } catch(e){ botConnected=false; plat={twitch:null,kick:null}; renderConn(); scheduleRetry(); return; }
-  ws.onopen=()=>{ botConnected=true; renderConn(); ws.send(JSON.stringify({ request:"Subscribe", id:"subathon-overlay", events:{ Twitch:["Sub","ReSub","GiftSub","GiftBomb","Cheer"], Kick:["Subscription","Resubscription","GiftSubscription","MassGiftSubscription"], StreamElements:["Tip"], Streamlabs:["Donation"] } })); requestBroadcaster(); };
-  ws.onmessage=e=>handleMessage(e.data);
-  ws.onerror=()=>{ try{ws.close();}catch(_){} };
-  ws.onclose=()=>{ botConnected=false; plat={twitch:null,kick:null}; renderConn(); scheduleRetry(); };
-}
-function scheduleRetry(){ clearTimeout(retryTimer); retryTimer=setTimeout(connect,3000); }
-function giftCount(data,dflt){ const c=[data.gifts,data.count,data.totalSubsGifted,data.totalSubs,data.quantity,data.amount,data.giftCount]; for(const x of c){ const n=parseInt(x,10); if(Number.isFinite(n)&&n>0) return n; } return dflt||1; }
-function handleMessage(raw){
-  let m; try{ m=JSON.parse(raw); }catch(e){ return; }
-  if(Array.isArray(m.connected)){ plat.twitch=m.connected.includes("twitch"); plat.kick=m.connected.includes("kick"); renderConn(); return; }
-  const ev=m.event; if(!ev||!ev.source) return; const d=m.data||{};
-  console.log("[subathon]",ev.source,ev.type,d);
-  if(ev.source==="Twitch"){
-    if(ev.type==="Sub"||ev.type==="ReSub"||ev.type==="GiftSub") onSub("twitch",1);
-    else if(ev.type==="GiftBomb") onSub("twitch",giftCount(d));
-    else if(ev.type==="Cheer") onBits(num(d.bits,0));
-  } else if(ev.source==="Kick"){
-    if(ev.type==="Subscription"||ev.type==="Resubscription") onSub("kick",1);
-    else if(ev.type==="GiftSubscription") onSub("kick",giftCount(d,1));
-    else if(ev.type==="MassGiftSubscription") onSub("kick",giftCount(d));
-  } else if(ev.source==="StreamElements"&&ev.type==="Tip") onTip(num(d.amount,0));
-  else if(ev.source==="Streamlabs"&&ev.type==="Donation") onTip(num(d.amount,0));
-}
 
-/* ---- Mix It Up (Developer API counter polling) ---- */
-let miuTimer=null, bcTimer=null, miuLast={twitch:null,kick:null};
+let miuTimer=null, miuLast={twitch:null,kick:null};
 function counterVal(c){ if(!c) return null; const v=c.Amount??c.amount??c.Count??c.count??c.Value??c.value; const n=Number(v); return Number.isFinite(n)?n:null; }
 function applyCounter(platform,val){
   const last=miuLast[platform]; miuLast[platform]=val;
@@ -934,22 +883,12 @@ async function miuPoll(){
     botConnected=true; plat.twitch = tw!==null; plat.kick = kk!==null; renderConn();
   }catch(e){ botConnected=false; plat={twitch:null,kick:null}; renderConn(); }
 }
-function stopSource(){
-  clearTimeout(retryTimer); clearInterval(bcTimer); clearInterval(miuTimer); bcTimer=null; miuTimer=null;
-  if(ws){ try{ ws.onclose=null; ws.close(); }catch(_){} ws=null; }
-  botConnected=false; plat={twitch:null,kick:null};
-}
 function startSource(){
-  stopSource();
+  clearInterval(miuTimer);
   miuLast={twitch:null,kick:null};
-  renderConn();
-  if(CONFIG.SOURCE==="mixitup"){
-    miuPoll();
-    miuTimer=setInterval(miuPoll, Math.max(1,CONFIG.MIU_POLL)*1000);
-  } else {
-    connect();
-    bcTimer=setInterval(requestBroadcaster, 15000);
-  }
+  botConnected=false; plat={twitch:null,kick:null}; renderConn();
+  miuPoll();
+  miuTimer=setInterval(miuPoll, Math.max(1,CONFIG.MIU_POLL)*1000);
 }
 
 /* ============================================================
@@ -964,7 +903,6 @@ if(params.get("edit")==="1") setEditing(true);
 refreshUserTpl();
 $("addSel").addEventListener("change", function(){ if(this.value){ addElement(this.value); this.value=""; } });
 $("tplSel").addEventListener("change", function(){ if(this.value){ addTemplate(this.value); this.value=""; } });
-$("srcSel").addEventListener("change", syncSourceFields);
 renderConn();
 startSource();
 if(demo){ setInterval(()=>{ const r=Math.random(); if(r<.5) onSub(Math.random()<.5?"twitch":"kick", Math.random()<.25?2+Math.floor(Math.random()*5):1); else if(r<.8) onBits(100*(1+Math.floor(Math.random()*5))); else onTip(5*(1+Math.floor(Math.random()*4))); }, 3200); }
