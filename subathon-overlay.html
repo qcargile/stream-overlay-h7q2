@@ -39,6 +39,10 @@
   .el.text, .el.value { white-space: nowrap; line-height: 1.05; }
   .el.value.flash-el { animation: bump .5s cubic-bezier(.2,1.4,.4,1); }
   @keyframes bump { 0%{transform:scale(1);} 35%{transform:scale(1.18);} 100%{transform:scale(1);} }
+  .el.reached { animation: goalGlow 1.6s ease-in-out infinite; }
+  .el.just-reached { animation: goalPop .7s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes goalGlow { 0%,100%{ filter: drop-shadow(0 0 5px #ffd76b); } 50%{ filter: drop-shadow(0 0 20px #ffd76b) drop-shadow(0 0 34px #ffb347); } }
+  @keyframes goalPop { 0%{transform:scale(1);} 30%{transform:scale(1.09);} 60%{transform:scale(.98);} 100%{transform:scale(1);} }
   .el.icon { display:flex; align-items:center; justify-content:center; }
   .el.icon.spin svg, .el.icon.spin .emoji { animation: spin 9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -474,7 +478,13 @@ function setValueContent(node, el){
   else { let s; if(el.format==="money") s=Number(v).toFixed(2); else s=Math.round(v).toLocaleString(); node.textContent = (el.prefix||"")+s+(el.suffix||""); }
   appendHandle(node);
 }
-function updateBar(node, el){ const v=getValue(el.bind), pct=Math.max(0,Math.min(100, el.goal>0? v/el.goal*100:0)); const f=node.querySelector(".fill"); if(f)f.style.width=pct.toFixed(1)+"%"; const l=node.querySelector(".bl"); if(l)l.textContent=(el.format==="money"?Number(v).toFixed(2):Math.round(v))+" / "+el.goal; }
+function markGoal(node, el, pct){
+  if(!(el.goal>0)){ if(node.dataset.reached){ node.dataset.reached=""; node.classList.remove("reached","just-reached"); } return; }
+  const reached=pct>=100, was=node.dataset.reached==="1";
+  if(reached && !was){ node.dataset.reached="1"; node.classList.add("reached","just-reached"); setTimeout(()=>node.classList.remove("just-reached"),750); }
+  else if(!reached && was){ node.dataset.reached=""; node.classList.remove("reached","just-reached"); }
+}
+function updateBar(node, el){ const v=getValue(el.bind), pct=Math.max(0,Math.min(100, el.goal>0? v/el.goal*100:0)); const f=node.querySelector(".fill"); if(f)f.style.width=pct.toFixed(1)+"%"; const l=node.querySelector(".bl"); if(l)l.textContent=(el.format==="money"?Number(v).toFixed(2):Math.round(v))+" / "+el.goal; markGoal(node,el,pct); }
 function updateFill(node, el){
   const v=getValue(el.bind), pct=Math.max(0,Math.min(100, el.goal>0?v/el.goal*100:0));
   node.classList.toggle("vert", el.dir==="v");
@@ -482,6 +492,7 @@ function updateFill(node, el){
   if(lvl){ lvl.style.background=el.fill; lvl.style.boxShadow="0 0 16px "+el.fill; if(el.dir==="v"){ lvl.style.top=""; lvl.style.right="0"; lvl.style.width=""; lvl.style.height=pct.toFixed(1)+"%"; } else { lvl.style.right=""; lvl.style.top="0"; lvl.style.bottom="0"; lvl.style.height=""; lvl.style.width=pct.toFixed(1)+"%"; } }
   const txt=node.querySelector(".filltext");
   if(txt){ const parts=[]; if(el.showLabel&&el.label) parts.push("<span>"+escapeHtml(el.label)+"</span>"); if(el.showCount){ let c; const val=(el.bind==="tips"?Number(v).toFixed(0):Math.round(v)); if(el.countFormat==="percent") c=Math.round(pct)+"%"; else if(el.countFormat==="current") c=Number(val).toLocaleString(); else c=val+"/"+el.goal; parts.push("<span>"+c+"</span>"); } txt.innerHTML=parts.join("&nbsp;&nbsp;"); }
+  markGoal(node,el,pct);
 }
 function renderMilestones(node, el){
   [...node.childNodes].forEach(c=>{ if(!(c.classList&&c.classList.contains("rs"))) c.remove(); });
