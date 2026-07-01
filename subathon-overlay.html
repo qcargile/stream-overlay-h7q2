@@ -195,6 +195,14 @@
       <label class="ed-toggle-lbl"><input type="checkbox" id="chkShowCtrl" checked> Control bar</label>
     </div>
 
+    <h3>Connection</h3>
+    <label class="ed-lbl">Streamer.bot WebSocket URL</label>
+    <div class="ed-row">
+      <input type="text" id="wsUrl" placeholder="ws://127.0.0.1:8080/" />
+      <button class="btn sm" data-act="wsReconnect">Connect</button>
+    </div>
+    <div id="wsStatus" style="font-size:12px;color:#889;margin:2px 0 8px;">…</div>
+
     <h3>Add</h3>
     <label class="ed-lbl">Add a widget</label>
     <select id="tplSel">
@@ -309,6 +317,7 @@
    CONFIG
    ============================================================ */
 const CONFIG = { WS_URL:"ws://127.0.0.1:8080/", SECONDS_PER_SUB:120, STARTING_MINUTES:60, STARTING_SUBS:0, MAX_HOURS:0 };
+{ const savedWs=localStorage.getItem("sa.wsUrl"); if(savedWs) CONFIG.WS_URL=savedWs; }
 const $ = id => document.getElementById(id);
 const num = (v,d) => { if (v===null||v===undefined||v==="") return d; const n=Number(v); return Number.isFinite(n)?n:d; };
 const params = new URLSearchParams(location.search);
@@ -721,6 +730,7 @@ $("editPanel").addEventListener("click", e=>{
   else if(act==="tplIns"){ const nm=$("userTplSel").value; if(nm) insertUserTpl(nm); }
   else if(act==="tplSave"){ const nm=($("tplName").value||"").trim()||("Template "+(Object.keys(userTpl).length+1)); if(saveSelectionAsTpl(nm)) $("tplName").value=""; }
   else if(act==="tplDel"){ const nm=$("userTplSel").value; if(nm&&userTpl[nm]){ delete userTpl[nm]; saveUserTpl(); refreshUserTpl(); } }
+  else if(act==="wsReconnect"){ const url=($("wsUrl").value||"").trim()||"ws://127.0.0.1:8080/"; CONFIG.WS_URL=url; localStorage.setItem("sa.wsUrl",url); $("wsUrl").value=url; if($("wsStatus")) $("wsStatus").textContent="Connecting…"; clearTimeout(retryTimer); if(ws){ try{ ws.onclose=null; ws.close(); }catch(_){} } connect(); }
   else if(act==="reset"){ if(confirm("Reset EVERYTHING — all widgets, layout, timer, totals?")){ localStorage.clear(); location.reload(); } }
 });
 function alignSelection(mode){
@@ -743,7 +753,7 @@ $("gSps").oninput=()=>{ CONFIG.SECONDS_PER_SUB=Math.max(1,num($("gSps").value,CO
 $("gTwSubs").oninput=updateCombo; $("gKkSubs").oninput=updateCombo;
 
 function updateCombo(){ const h=$("comboHint"); if(h) h.textContent="Combined total: "+(num($("gTwSubs").value,subsTwitch)+num($("gKkSubs").value,subsKick)).toLocaleString()+" subs"; }
-function fillGlobals(){ $("gSps").value=CONFIG.SECONDS_PER_SUB; $("gTwSubs").value=subsTwitch; $("gKkSubs").value=subsKick; $("gBits").value=DATA.bits; $("gTips").value=DATA.tips; updateCombo(); }
+function fillGlobals(){ $("gSps").value=CONFIG.SECONDS_PER_SUB; $("gTwSubs").value=subsTwitch; $("gKkSubs").value=subsKick; $("gBits").value=DATA.bits; $("gTips").value=DATA.tips; if($("wsUrl")) $("wsUrl").value=CONFIG.WS_URL; updateCombo(); renderConn(); }
 function setEditing(on){ document.body.classList.toggle("editing",on); if(on){ fillGlobals(); applySelClasses(); renderSelPanel(); } }
 if(params.get("edit")==="1"){ document.body.classList.add("edit-enabled"); }
 $("editBtn").addEventListener("click",()=> setEditing(!document.body.classList.contains("editing")) );
@@ -814,6 +824,14 @@ function renderConn(){
   const tw=botConnected?plat.twitch:null, kk=botConnected?plat.kick:null;
   [["dotBot",botConnected],["dotTw",tw],["dotKk",kk],["sBot",botConnected],["sTw",tw],["sKk",kk]].forEach(p=>{ const e=$(p[0]); if(e) e.className=dotClass(p[1]); });
   [["stBot",botConnected],["stTw",tw],["stKk",kk]].forEach(p=>{ const e=$(p[0]); if(e) e.textContent=stText(p[1]); });
+  const wsE=$("wsStatus");
+  if(wsE){
+    if(botConnected){
+      const parts=[]; if(plat.twitch===true)parts.push("Twitch ✓"); if(plat.kick===true)parts.push("Kick ✓");
+      wsE.textContent="✓ Connected to Streamer.bot"+(parts.length?" — "+parts.join(", "):"");
+      wsE.style.color="#8affd1";
+    } else { wsE.textContent="✕ Not connected — is Streamer.bot open with its WebSocket Server enabled?"; wsE.style.color="#ff9aa6"; }
+  }
 }
 function requestBroadcaster(){ if(ws && ws.readyState===1){ try{ ws.send(JSON.stringify({request:"GetBroadcaster", id:"getbc"})); }catch(_){} } }
 function connect(){
