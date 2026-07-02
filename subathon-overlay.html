@@ -903,6 +903,16 @@ function handleKick(raw){
   if(ev.indexOf("pusher")===0) return;
   const cls=ev.split("\\").pop();
   let d={}; try{ d=typeof m.data==="string"?JSON.parse(m.data):(m.data||{}); }catch(_){ d={}; }
+  if(cls==="ChatMessageEvent"){
+    const who=String(d&&d.sender&&d.sender.username||"");
+    const txt=String(d&&d.content||"");
+    if(/kickbot/i.test(who)){
+      const g=txt.match(/gifted\s+(\d+)\s+subs?/i);
+      if(g){ onSub("kick",Math.max(1,parseInt(g[1],10))); return; }
+      if(/\bsubscribed\b|\bresubscribed\b/i.test(txt)){ onSub("kick",1); return; }
+    }
+    return;
+  }
   if(cls==="SubscriptionEvent"){ onSub("kick",1); }
   else if(cls==="GiftedSubscriptionsEvent"){ const n=Array.isArray(d.gifted_usernames)?d.gifted_usernames.length:1; onSub("kick",Math.max(1,n)); }
 }
