@@ -339,7 +339,8 @@ const K = { end:"sa.end", rem:"sa.rem", paused:"sa.paused", subs:"sa.subs", seed
 const showControl = params.get("control")==="1" || params.get("demo")==="1";
 const demo = params.get("demo")==="1";
 if (params.get("bg")==="1") document.body.classList.add("preview-bg");
-if (!window.obsstudio) document.body.classList.add("page-bg");
+function applyBrowserBg(){ document.body.classList.toggle("page-bg", !window.obsstudio); }
+window.addEventListener("load", function(){ applyBrowserBg(); setTimeout(applyBrowserBg, 800); });
 if (params.get("status")==="1") document.body.classList.add("show-status");
 if (params.has("sps")) CONFIG.SECONDS_PER_SUB = num(params.get("sps"), CONFIG.SECONDS_PER_SUB);
 
