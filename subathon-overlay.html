@@ -334,7 +334,7 @@ CONFIG.MIU_BASE = localStorage.getItem("sa.miuBase") || "http://localhost:8911/a
 CONFIG.MIU_TW   = localStorage.getItem("sa.miuTw")   || "twitchsubs";
 CONFIG.MIU_KK   = localStorage.getItem("sa.miuKk")   || "kicksubs";
 CONFIG.MIU_POLL = (function(){ const n=parseFloat(localStorage.getItem("sa.miuPoll")); return Number.isFinite(n)&&n>0?n:3; })();
-CONFIG.KICK_ROOM = localStorage.getItem("sa.kickRoom") || "";
+CONFIG.KICK_ROOM = localStorage.getItem("sa.kickRoom") || "120964";
 const $ = id => document.getElementById(id);
 const num = (v,d) => { if (v===null||v===undefined||v==="") return d; const n=Number(v); return Number.isFinite(n)?n:d; };
 const params = new URLSearchParams(location.search);
