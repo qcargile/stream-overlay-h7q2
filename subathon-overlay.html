@@ -218,6 +218,7 @@
       <option value="timer">Subathon timer</option>
       <option value="subGoal">Sub goal (bar)</option>
       <option value="goalFill">Goal (fills up)</option>
+      <option value="subathonBar">Subathon milestone bar</option>
       <option value="milestones">Milestones</option>
       <option value="bits">Bits</option>
       <option value="tips">Donations</option>
@@ -417,7 +418,7 @@ const ELEMENT_BASE = {
   bar:   { type:"bar", w:320, h:26, bind:"subs", goal:50, fill:"#4fe9ff", track:"#241f3a", round:13, showLabel:true },
   box:   { type:"box", w:320, h:96, accent:"#4fe9ff", bgDark:72, round:22, ring:true, glow:true },
   milestones: { type:"milestones", w:300, h:0, bind:"subs", items:"300 | Hair color\n400 | Body paint\n500 | Tattoo", font:"Baloo 2", size:18, color:"#ffffff", accent:"#ff5fc8" },
-  fill: { type:"fill", w:330, h:64, bind:"subs", goal:50, dir:"h", fill:"#ff5fc8", empty:55, accent:"#ff5fc8", round:30, ring:true, glow:true, label:"GOAL", showLabel:true, showCount:true, countFormat:"current/total", textColor:"#ffffff", font:"Baloo 2", size:22 }
+  fill: { type:"fill", w:330, h:64, bind:"subs", goal:50, goals:"", gradient:false, fill2:"#ff5fc8", dir:"h", fill:"#ff5fc8", empty:55, accent:"#ff5fc8", round:30, ring:true, glow:true, label:"GOAL", showLabel:true, showCount:true, countFormat:"current/total", textColor:"#ffffff", font:"Baloo 2", size:22 }
 };
 function makeEl(type, x, y, over){ return Object.assign({id:nid(), x:Math.round(x), y:Math.round(y)}, JSON.parse(JSON.stringify(ELEMENT_BASE[type])), over||{}); }
 
@@ -429,7 +430,12 @@ const TEMPLATES = {
   bits:(x,y)=>[ makeEl("box",x,y,{w:240,h:90,accent:"#9146ff"}), makeEl("icon",x+18,y+22,{svg:"diamond",color:"#9146ff",size:44}), makeEl("value",x+78,y+20,{bind:"bits",size:44,color:"#ffffff"}), makeEl("text",x+80,y+60,{text:"BITS",size:14,color:"#9146ff",letter:3}) ],
   tips:(x,y)=>[ makeEl("box",x,y,{w:260,h:90,accent:"#ffd76b"}), makeEl("icon",x+18,y+22,{svg:"drop",color:"#ffd76b",size:44}), makeEl("value",x+78,y+20,{bind:"tips",format:"money",prefix:"$",size:42,color:"#ffffff"}), makeEl("text",x+80,y+60,{text:"DONATIONS",size:13,color:"#ffd76b",letter:2}) ],
   subBreakdown:(x,y)=>[ makeEl("box",x,y,{w:320,h:118,accent:"#4fe9ff"}), makeEl("icon",x+18,y+22,{svg:"star",color:"#4fe9ff",size:40}), makeEl("value",x+70,y+16,{bind:"subs",size:46,color:"#ffffff"}), makeEl("text",x+72,y+60,{text:"TOTAL SUBS",size:12,color:"#4fe9ff",letter:2}), makeEl("text",x+200,y+24,{text:"Twitch",size:12,color:"#9146ff"}), makeEl("value",x+200,y+38,{bind:"subsTwitch",size:22,color:"#9146ff"}), makeEl("text",x+200,y+70,{text:"Kick",size:12,color:"#53fc18"}), makeEl("value",x+200,y+84,{bind:"subsKick",size:22,color:"#53fc18"}) ],
-  goalFill:(x,y)=>[ makeEl("fill",x,y,{w:330,h:62,bind:"subs",goal:50,fill:"#ff5fc8",accent:"#ff5fc8",label:"BIKINI STREAM",size:22,round:30,empty:55}) ]
+  goalFill:(x,y)=>[ makeEl("fill",x,y,{w:330,h:62,bind:"subs",goal:50,fill:"#ff5fc8",accent:"#ff5fc8",label:"BIKINI STREAM",size:22,round:30,empty:55}) ],
+  subathonBar:(x,y)=>{ const gid="g_"+Math.random().toString(36).slice(2,7); return [
+    makeEl("fill",x+26,y,{w:340,h:40,bind:"subs",goal:300,goals:"300, 400, 500, 600, 700, 800, 900, 1000",dir:"h",fill:"#824dff",gradient:true,fill2:"#ff5fc8",accent:"#a066ff",empty:100,round:10,ring:true,glow:true,label:"SUBATHON",showLabel:true,showCount:true,countFormat:"current/total",textColor:"#ffffff",font:"Fredoka",size:20,group:gid}),
+    makeEl("icon",x,y+9,{kind:"svg",svg:"heart",color:"#ff8fd0",size:20,group:gid}),
+    makeEl("icon",x+372,y+9,{kind:"svg",svg:"heart",color:"#ff8fd0",size:20,group:gid})
+  ]; }
 };
 
 const DEFAULT_LAYOUT = [{"id":"el_7i9k73","x":850,"y":263,"type":"fill","w":318,"h":35,"bind":"subs","goal":50,"dir":"h","fill":"#824dff","empty":100,"accent":"#824dff","round":8,"ring":true,"glow":true,"label":"BIKINI STREAM NOW","showLabel":true,"showCount":true,"countFormat":"current/total","textColor":"#ffffff","font":"Fredoka","size":22,"group":"g_a98db"},{"id":"el_ex1el7","x":1149,"y":270,"type":"icon","w":0,"h":0,"kind":"svg","svg":"heart","emoji":"⭐","color":"#824dff","size":19,"spin":false,"contrast":true,"group":"g_a98db"},{"id":"el_jz7hvr","x":850,"y":271,"type":"icon","w":0,"h":0,"kind":"svg","svg":"heart","emoji":"⭐","color":"#824dff","size":19,"spin":false,"contrast":true,"group":"g_a98db"}];
@@ -478,14 +484,27 @@ function markGoal(node, el, pct){
   else if(!reached && was){ node.dataset.reached=""; node.classList.remove("reached","just-reached"); }
 }
 function updateBar(node, el){ const v=getValue(el.bind), pct=Math.max(0,Math.min(100, el.goal>0? v/el.goal*100:0)); const f=node.querySelector(".fill"); if(f)f.style.width=pct.toFixed(1)+"%"; const l=node.querySelector(".bl"); if(l)l.textContent=(el.format==="money"?Number(v).toFixed(2):Math.round(v))+" / "+el.goal; markGoal(node,el,pct); }
+function parseGoals(s){ if(!s) return []; return String(s).split(/[\s,]+/).map(x=>parseInt(x,10)).filter(n=>Number.isFinite(n)&&n>0).sort((a,b)=>a-b); }
+function tierInfo(goals, cur){ for(let i=0;i<goals.length;i++){ if(goals[i]>cur) return {target:goals[i], done:false}; } return {target:goals[goals.length-1], done:true}; }
 function updateFill(node, el){
-  const v=getValue(el.bind), pct=Math.max(0,Math.min(100, el.goal>0?v/el.goal*100:0));
+  const v=getValue(el.bind);
+  const goals=parseGoals(el.goals);
+  let target=el.goal, done=false, tiered=false;
+  if(goals.length){ tiered=true; const ti=tierInfo(goals,v); target=ti.target; done=ti.done; }
+  const pct=Math.max(0,Math.min(100, target>0?v/target*100:0));
   node.classList.toggle("vert", el.dir==="v");
   const lvl=node.querySelector(".filllevel");
-  if(lvl){ lvl.style.background=el.fill; lvl.style.boxShadow="0 0 16px "+el.fill; if(el.dir==="v"){ lvl.style.top=""; lvl.style.right="0"; lvl.style.width=""; lvl.style.height=pct.toFixed(1)+"%"; } else { lvl.style.right=""; lvl.style.top="0"; lvl.style.bottom="0"; lvl.style.height=""; lvl.style.width=pct.toFixed(1)+"%"; } }
+  if(lvl){ const bg=el.gradient?("linear-gradient("+(el.dir==="v"?"0deg":"90deg")+","+el.fill+","+(el.fill2||el.fill)+")"):el.fill; lvl.style.background=bg; lvl.style.boxShadow="0 0 16px "+el.fill; if(el.dir==="v"){ lvl.style.top=""; lvl.style.right="0"; lvl.style.width=""; lvl.style.height=pct.toFixed(1)+"%"; } else { lvl.style.right=""; lvl.style.top="0"; lvl.style.bottom="0"; lvl.style.height=""; lvl.style.width=pct.toFixed(1)+"%"; } }
   const txt=node.querySelector(".filltext");
-  if(txt){ const parts=[]; if(el.showLabel&&el.label) parts.push("<span>"+escapeHtml(el.label)+"</span>"); if(el.showCount){ let c; const val=(el.bind==="tips"?Number(v).toFixed(0):Math.round(v)); if(el.countFormat==="percent") c=Math.round(pct)+"%"; else if(el.countFormat==="current") c=Number(val).toLocaleString(); else c=val+"/"+el.goal; parts.push("<span>"+c+"</span>"); } txt.innerHTML=parts.join("&nbsp;&nbsp;"); }
-  markGoal(node,el,pct);
+  if(txt){ const parts=[]; if(el.showLabel&&el.label) parts.push("<span>"+escapeHtml(el.label)+"</span>"); if(el.showCount){ let c; const val=(el.bind==="tips"?Number(v).toFixed(0):Math.round(v)); if(el.countFormat==="percent") c=Math.round(pct)+"%"; else if(el.countFormat==="current") c=Number(val).toLocaleString(); else c=val+"/"+target; parts.push("<span>"+c+"</span>"); } txt.innerHTML=parts.join("&nbsp;&nbsp;"); }
+  if(tiered){
+    const prev=node.dataset.tgt?Number(node.dataset.tgt):null;
+    if(prev!==null && target>prev){ node.classList.add("just-reached"); setTimeout(()=>node.classList.remove("just-reached"),750); }
+    node.dataset.tgt=target;
+    node.classList.toggle("reached", done);
+  } else {
+    markGoal(node,el,pct);
+  }
 }
 function renderMilestones(node, el){
   [...node.childNodes].forEach(c=>{ if(!(c.classList&&c.classList.contains("rs"))) c.remove(); });
@@ -616,8 +635,11 @@ function buildProps(el){
   else if(el.type==="fill"){
     const b=sel(el.bind,[["subs","Total subs"],["subsTwitch","Twitch subs"],["subsKick","Kick subs"],["bits","Bits"],["tips","Tips $"]]); b.onchange=()=>upd("bind",b.value); P.appendChild(field("Fills with",b));
     const g=inp("number",el.goal,{min:1}); g.oninput=()=>upd("goal",Math.max(1,num(g.value,el.goal))); P.appendChild(field("Goal target",g));
+    const gs=inp("text",el.goals||""); gs.placeholder="e.g. 300, 400, 500, 600"; gs.oninput=()=>upd("goals",gs.value); P.appendChild(field("Milestone goals (auto-advance, overrides target)",gs));
     const d=sel(el.dir,[["h","Left → right"],["v","Bottom → up"]]); d.onchange=()=>upd("dir",d.value); P.appendChild(field("Fill direction",d));
     const f=inp("color",el.fill); f.oninput=()=>upd("fill",f.value); P.appendChild(field("Fill color",f));
+    const grd=chk(el.gradient); grd.onchange=()=>upd("gradient",grd.checked); const tg=document.createElement("div"); tg.className="toggle"; tg.appendChild(grd); const sg=document.createElement("span"); sg.textContent="Gradient fill"; tg.appendChild(sg); P.appendChild(tg);
+    const f2=inp("color",el.fill2||"#ff5fc8"); f2.oninput=()=>upd("fill2",f2.value); P.appendChild(field("Gradient 2nd color",f2));
     const ac=inp("color",el.accent); ac.oninput=()=>upd("accent",ac.value); P.appendChild(field("Ring / glow color",ac));
     const em=inp("range",el.empty,{min:0,max:100,step:1}); em.oninput=()=>upd("empty",num(em.value,el.empty)); P.appendChild(field("Empty background darkness",em));
     const r=inp("range",el.round,{min:0,max:50,step:1}); r.oninput=()=>upd("round",num(r.value,el.round)); P.appendChild(field("Roundness",r));
