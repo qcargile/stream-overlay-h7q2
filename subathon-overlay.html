@@ -188,7 +188,6 @@
 
   <div id="connStatus">
     <h4>Connection</h4>
-    <div class="cs"><span id="sBot" class="cdot"></span><span class="lbl2" id="lblBot">Mix It Up</span><span class="st" id="stBot">…</span></div>
     <div class="cs"><span id="sTw" class="cdot"></span><span class="lbl2">Twitch</span><span class="st" id="stTw">…</span></div>
     <div class="cs"><span id="sKk" class="cdot"></span><span class="lbl2">Kick</span><span class="st" id="stKk">…</span></div>
   </div>
@@ -200,18 +199,12 @@
       <label class="ed-toggle-lbl"><input type="checkbox" id="chkShowCtrl" checked> Control bar</label>
     </div>
 
-    <h3>Connection (Mix It Up)</h3>
+    <h3>Connection</h3>
     <div id="miuFields">
-      <label class="ed-lbl">Mix It Up API base</label>
-      <input type="text" id="miuBase" placeholder="http://localhost:8911/api/v2" />
-      <label class="ed-lbl">Twitch subs counter name</label>
-      <input type="text" id="miuTw" placeholder="twitchsubs" />
-      <label class="ed-lbl">Kick subs counter name</label>
-      <input type="text" id="miuKk" placeholder="kicksubs" />
-      <label class="ed-lbl">Kick chatroom ID (reads Kick directly — leave blank to use Mix It Up for Kick)</label>
-      <input type="text" id="kickRoom" placeholder="e.g. 668" />
-      <label class="ed-lbl">Refresh seconds</label>
-      <input type="number" id="miuPoll" min="1" placeholder="3" />
+      <label class="ed-lbl">Twitch channel name</label>
+      <input type="text" id="twitchChan" placeholder="lidsy" />
+      <label class="ed-lbl">Kick chatroom ID</label>
+      <input type="text" id="kickRoom" placeholder="120964" />
     </div>
     <div class="ed-row" style="margin-top:8px"><button class="btn sm" data-act="srcApply">Connect / Test</button></div>
     <div id="wsStatus" style="font-size:12px;color:#889;margin:6px 0 8px;">…</div>
@@ -319,7 +312,6 @@
     <button data-act="hide">Hide — press H to show</button>
     <span class="sep"></span>
     <span id="status">
-      <span class="cs"><span id="dotBot" class="cdot"></span>Mix It Up</span>
       <span class="cs"><span id="dotTw" class="cdot"></span>Twitch</span>
       <span class="cs"><span id="dotKk" class="cdot"></span>Kick</span>
     </span>
@@ -330,11 +322,8 @@
    CONFIG
    ============================================================ */
 const CONFIG = { SECONDS_PER_SUB:120, STARTING_MINUTES:60, STARTING_SUBS:0, MAX_HOURS:0 };
-CONFIG.MIU_BASE = localStorage.getItem("sa.miuBase") || "http://localhost:8911/api/v2";
-CONFIG.MIU_TW   = localStorage.getItem("sa.miuTw")   || "twitchsubs";
-CONFIG.MIU_KK   = localStorage.getItem("sa.miuKk")   || "kicksubs";
-CONFIG.MIU_POLL = (function(){ const n=parseFloat(localStorage.getItem("sa.miuPoll")); return Number.isFinite(n)&&n>0?n:3; })();
-CONFIG.KICK_ROOM = localStorage.getItem("sa.kickRoom") || "120964";
+CONFIG.TWITCH_CHAN = (localStorage.getItem("sa.twitchChan") || "lidsy").toLowerCase();
+CONFIG.KICK_ROOM   = localStorage.getItem("sa.kickRoom") || "120964";
 const $ = id => document.getElementById(id);
 const num = (v,d) => { if (v===null||v===undefined||v==="") return d; const n=Number(v); return Number.isFinite(n)?n:d; };
 const params = new URLSearchParams(location.search);
@@ -757,12 +746,9 @@ $("editPanel").addEventListener("click", e=>{
   else if(act==="tplSave"){ const nm=($("tplName").value||"").trim()||("Template "+(Object.keys(userTpl).length+1)); if(saveSelectionAsTpl(nm)) $("tplName").value=""; }
   else if(act==="tplDel"){ const nm=$("userTplSel").value; if(nm&&userTpl[nm]){ delete userTpl[nm]; saveUserTpl(); refreshUserTpl(); } }
   else if(act==="srcApply"){
-    const base=($("miuBase").value||"").trim()||"http://localhost:8911/api/v2"; CONFIG.MIU_BASE=base; localStorage.setItem("sa.miuBase",base);
-    const tw=($("miuTw").value||"").trim(); CONFIG.MIU_TW=tw; localStorage.setItem("sa.miuTw",tw);
-    const kk=($("miuKk").value||"").trim(); CONFIG.MIU_KK=kk; localStorage.setItem("sa.miuKk",kk);
+    const tc=($("twitchChan").value||"").trim().toLowerCase(); CONFIG.TWITCH_CHAN=tc; localStorage.setItem("sa.twitchChan",tc);
     const kr=($("kickRoom").value||"").trim(); CONFIG.KICK_ROOM=kr; localStorage.setItem("sa.kickRoom",kr);
-    const pl=Math.max(1,num($("miuPoll").value,3)); CONFIG.MIU_POLL=pl; localStorage.setItem("sa.miuPoll",pl);
-    if($("wsStatus")){ $("wsStatus").textContent="Checking Mix It Up…"; $("wsStatus").style.color="#889"; }
+    if($("wsStatus")){ $("wsStatus").textContent="Connecting…"; $("wsStatus").style.color="#889"; }
     startSource();
   }
   else if(act==="reset"){ if(confirm("Reset EVERYTHING — all widgets, layout, timer, totals?")){ localStorage.clear(); location.reload(); } }
@@ -788,11 +774,8 @@ $("gTwSubs").oninput=updateCombo; $("gKkSubs").oninput=updateCombo;
 
 function updateCombo(){ const h=$("comboHint"); if(h) h.textContent="Combined total: "+(num($("gTwSubs").value,subsTwitch)+num($("gKkSubs").value,subsKick)).toLocaleString()+" subs"; }
 function fillGlobals(){ $("gSps").value=CONFIG.SECONDS_PER_SUB; $("gTwSubs").value=subsTwitch; $("gKkSubs").value=subsKick; $("gBits").value=DATA.bits; $("gTips").value=DATA.tips;
-  if($("miuBase")) $("miuBase").value=CONFIG.MIU_BASE;
-  if($("miuTw")) $("miuTw").value=CONFIG.MIU_TW;
-  if($("miuKk")) $("miuKk").value=CONFIG.MIU_KK;
+  if($("twitchChan")) $("twitchChan").value=CONFIG.TWITCH_CHAN;
   if($("kickRoom")) $("kickRoom").value=CONFIG.KICK_ROOM;
-  if($("miuPoll")) $("miuPoll").value=CONFIG.MIU_POLL;
   updateCombo(); renderConn();
 }
 function setEditing(on){ document.body.classList.toggle("editing",on); if(on){ fillGlobals(); applySelClasses(); renderSelPanel(); } }
@@ -856,53 +839,49 @@ function setMoving(on){
 if(localStorage.getItem("sa.move")==="1") setMoving(true);
 
 /* ============================================================
-   MIX IT UP (Developer API counter polling)
+   LIVE SUB READERS — Twitch (anon IRC) + Kick (Pusher), no Mix It Up
    ============================================================ */
-let botConnected=false, plat={twitch:null,kick:null};
+let plat={twitch:null,kick:null};
 function dotClass(v){ return v===true?"cdot ok":v===false?"cdot bad":"cdot"; }
 function stText(v){ return v===true?"connected":v===false?"not connected":"…"; }
 function renderConn(){
-  const tw=botConnected?plat.twitch:null, kk=botConnected?plat.kick:null;
-  [["dotBot",botConnected],["dotTw",tw],["dotKk",kk],["sBot",botConnected],["sTw",tw],["sKk",kk]].forEach(p=>{ const e=$(p[0]); if(e) e.className=dotClass(p[1]); });
-  [["stBot",botConnected],["stTw",tw],["stKk",kk]].forEach(p=>{ const e=$(p[0]); if(e) e.textContent=stText(p[1]); });
+  const tw=plat.twitch, kk=plat.kick;
+  [["dotTw",tw],["dotKk",kk],["sTw",tw],["sKk",kk]].forEach(p=>{ const e=$(p[0]); if(e) e.className=dotClass(p[1]); });
+  [["stTw",tw],["stKk",kk]].forEach(p=>{ const e=$(p[0]); if(e) e.textContent=stText(p[1]); });
   const wsE=$("wsStatus");
   if(wsE){
-    if(botConnected){
-      const parts=[]; if(plat.twitch===true)parts.push("Twitch ✓"); if(plat.kick===true)parts.push("Kick ✓");
-      wsE.textContent="✓ Connected to Mix It Up"+(parts.length?" — "+parts.join(", "):" — no matching counters found yet");
-      wsE.style.color=parts.length?"#8affd1":"#ffd76b";
-    } else {
-      wsE.textContent="✕ Not connected — is Mix It Up open with the Developer API enabled?";
-      wsE.style.color="#ff9aa6";
-    }
+    const parts=[]; if(tw===true)parts.push("Twitch ✓"); if(kk===true)parts.push("Kick ✓");
+    if(parts.length){ wsE.textContent="✓ Reading live — "+parts.join(", "); wsE.style.color="#8affd1"; }
+    else { wsE.textContent="Connecting to Twitch & Kick chat…"; wsE.style.color="#889"; }
   }
 }
 
-let miuTimer=null, miuLast={twitch:null,kick:null};
-function counterVal(c){ if(!c) return null; const v=c.Amount??c.amount??c.Count??c.count??c.Value??c.value; const n=Number(v); return Number.isFinite(n)?n:null; }
-function applyCounter(platform,val){
-  const last=miuLast[platform]; miuLast[platform]=val;
-  if(platform==="kick") subsKick=val; else subsTwitch=val;
-  if(last!==null && val>last){ const delta=val-last; addSeconds(CONFIG.SECONDS_PER_SUB*delta); bumpValueEls("subs"); bumpValueEls(platform==="kick"?"subsKick":"subsTwitch"); floatTime(CONFIG.SECONDS_PER_SUB*delta, platform==="kick"?"#53fc18":"#9146ff"); }
-  persistSubs(); updateLive();
+/* ---- Twitch direct reader (anonymous IRC over WebSocket) ---- */
+let twWs=null, twRetry=null;
+function connectTwitch(){
+  const chan=(CONFIG.TWITCH_CHAN||"").trim().toLowerCase();
+  if(!chan){ return; }
+  try{ twWs=new WebSocket("wss://irc-ws.chat.twitch.tv:443"); }
+  catch(e){ plat.twitch=false; renderConn(); scheduleTwRetry(); return; }
+  twWs.onopen=()=>{ try{ twWs.send("CAP REQ :twitch.tv/tags twitch.tv/commands"); twWs.send("NICK justinfan"+(10000+Math.floor(Math.random()*89999))); twWs.send("JOIN #"+chan); }catch(_){} };
+  twWs.onmessage=e=>{ String(e.data).split("\r\n").forEach(l=>{ if(l) handleTwitch(l); }); };
+  twWs.onerror=()=>{ try{ twWs.close(); }catch(_){} };
+  twWs.onclose=()=>{ plat.twitch=false; renderConn(); scheduleTwRetry(); };
 }
-async function miuPoll(){
-  const base=(CONFIG.MIU_BASE||"").replace(/\/+$/,"");
-  try{
-    const r=await fetch(base+"/counters",{cache:"no-store"});
-    if(!r.ok) throw 0;
-    const d=await r.json();
-    const arr=Array.isArray(d.Counters)?d.Counters:(Array.isArray(d)?d:[]);
-    const find=name=>{ if(!name) return null; const c=arr.find(x=>String(x.Name??x.name??"").toLowerCase()===String(name).toLowerCase()); return c?counterVal(c):null; };
-    const tw=find(CONFIG.MIU_TW);
-    if(tw!==null) applyCounter("twitch",tw);
-    botConnected=true; plat.twitch = tw!==null;
-    if(!CONFIG.KICK_ROOM){ const kk=find(CONFIG.MIU_KK); if(kk!==null) applyCounter("kick",kk); plat.kick = kk!==null; }
-    renderConn();
-  }catch(e){ botConnected=false; plat.twitch=null; if(!CONFIG.KICK_ROOM) plat.kick=null; renderConn(); }
+function scheduleTwRetry(){ clearTimeout(twRetry); if(CONFIG.TWITCH_CHAN){ twRetry=setTimeout(connectTwitch,4000); } }
+function stopTwitch(){ clearTimeout(twRetry); if(twWs){ try{ twWs.onclose=null; twWs.close(); }catch(_){} twWs=null; } }
+function handleTwitch(line){
+  if(line.indexOf("PING")===0){ try{ twWs.send("PONG :tmi.twitch.tv"); }catch(_){} return; }
+  let tags={};
+  if(line[0]==="@"){ const sp=line.indexOf(" "); const ts=line.slice(1,sp); line=line.slice(sp+1); ts.split(";").forEach(kv=>{ const i=kv.indexOf("="); tags[kv.slice(0,i)]=kv.slice(i+1); }); }
+  if(line.indexOf(" ROOMSTATE ")!==-1 || line.indexOf(" 001 ")!==-1){ plat.twitch=true; renderConn(); return; }
+  if(line.indexOf(" USERNOTICE ")!==-1){
+    const id=tags["msg-id"];
+    if(id==="sub"||id==="resub"||id==="subgift"||id==="anonsubgift") onSub("twitch",1);
+  }
 }
 
-/* ---- Kick direct chat reader (Pusher) — used when a Kick chatroom ID is set ---- */
+/* ---- Kick direct reader (Pusher) ---- */
 let kickWs=null, kickRetry=null;
 function connectKick(){
   const room=(CONFIG.KICK_ROOM||"").trim();
@@ -928,12 +907,10 @@ function handleKick(raw){
   else if(cls==="GiftedSubscriptionsEvent"){ const n=Array.isArray(d.gifted_usernames)?d.gifted_usernames.length:1; onSub("kick",Math.max(1,n)); }
 }
 function startSource(){
-  clearInterval(miuTimer); stopKick();
-  miuLast={twitch:null,kick:null};
-  botConnected=false; plat={twitch:null,kick:null}; renderConn();
-  miuPoll();
-  miuTimer=setInterval(miuPoll, Math.max(1,CONFIG.MIU_POLL)*1000);
-  if(CONFIG.KICK_ROOM) connectKick();
+  stopTwitch(); stopKick();
+  plat={twitch:null,kick:null}; renderConn();
+  connectTwitch();
+  connectKick();
 }
 
 /* ============================================================
