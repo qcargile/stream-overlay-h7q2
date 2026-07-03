@@ -891,14 +891,14 @@ function renderConn(){
 }
 
 /* ---- Twitch direct reader (anonymous IRC over WebSocket) ---- */
-let twWs=null, twRetry=null;
+let twWs=null, twRetry=null, lastTwMsg=0, lastKickMsg=0;
 function connectTwitch(){
   const chan=(CONFIG.TWITCH_CHAN||"").trim().toLowerCase();
   if(!chan){ return; }
   try{ twWs=new WebSocket("wss://irc-ws.chat.twitch.tv:443"); }
   catch(e){ plat.twitch=false; renderConn(); scheduleTwRetry(); return; }
-  twWs.onopen=()=>{ try{ twWs.send("CAP REQ :twitch.tv/tags twitch.tv/commands"); twWs.send("NICK justinfan"+(10000+Math.floor(Math.random()*89999))); twWs.send("JOIN #"+chan); }catch(_){} };
-  twWs.onmessage=e=>{ String(e.data).split("\r\n").forEach(l=>{ if(l) handleTwitch(l); }); };
+  twWs.onopen=()=>{ lastTwMsg=Date.now(); try{ twWs.send("CAP REQ :twitch.tv/tags twitch.tv/commands"); twWs.send("NICK justinfan"+(10000+Math.floor(Math.random()*89999))); twWs.send("JOIN #"+chan); }catch(_){} };
+  twWs.onmessage=e=>{ lastTwMsg=Date.now(); String(e.data).split("\r\n").forEach(l=>{ if(l) handleTwitch(l); }); };
   twWs.onerror=()=>{ try{ twWs.close(); }catch(_){} };
   twWs.onclose=()=>{ plat.twitch=false; renderConn(); scheduleTwRetry(); };
 }
@@ -922,8 +922,8 @@ function connectKick(){
   if(!room){ return; }
   try{ kickWs=new WebSocket("wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=8.4.0-rc2&flash=false"); }
   catch(e){ plat.kick=false; renderConn(); scheduleKickRetry(); return; }
-  kickWs.onopen=()=>{ try{ kickWs.send(JSON.stringify({event:"pusher:subscribe",data:{channel:"chatrooms."+room+".v2"}})); }catch(_){} };
-  kickWs.onmessage=e=>handleKick(e.data);
+  kickWs.onopen=()=>{ lastKickMsg=Date.now(); try{ kickWs.send(JSON.stringify({event:"pusher:subscribe",data:{channel:"chatrooms."+room+".v2"}})); }catch(_){} };
+  kickWs.onmessage=e=>{ lastKickMsg=Date.now(); handleKick(e.data); };
   kickWs.onerror=()=>{ try{ kickWs.close(); }catch(_){} };
   kickWs.onclose=()=>{ plat.kick=false; renderConn(); scheduleKickRetry(); };
 }
@@ -950,11 +950,28 @@ function handleKick(raw){
   if(cls==="SubscriptionEvent"){ onSub("kick",1); }
   else if(cls==="GiftedSubscriptionsEvent"){ const n=Array.isArray(d.gifted_usernames)?d.gifted_usernames.length:1; onSub("kick",Math.max(1,n)); }
 }
+let sourceWatch=null;
+function watchSources(){
+  const now=Date.now();
+  if(CONFIG.KICK_ROOM){
+    if(kickWs && kickWs.readyState===1){
+      try{ kickWs.send(JSON.stringify({event:"pusher:ping",data:{}})); }catch(_){}
+      if(now-lastKickMsg > 45000){ try{ kickWs.onclose=null; kickWs.close(); }catch(_){} kickWs=null; plat.kick=false; renderConn(); scheduleKickRetry(); }
+    } else if(!kickWs){ scheduleKickRetry(); }
+  }
+  if(CONFIG.TWITCH_CHAN){
+    if(twWs && twWs.readyState===1){
+      try{ twWs.send("PING :tmi.twitch.tv"); }catch(_){}
+      if(now-lastTwMsg > 75000){ try{ twWs.onclose=null; twWs.close(); }catch(_){} twWs=null; plat.twitch=false; renderConn(); scheduleTwRetry(); }
+    } else if(!twWs){ scheduleTwRetry(); }
+  }
+}
 function startSource(){
-  stopTwitch(); stopKick();
+  stopTwitch(); stopKick(); clearInterval(sourceWatch);
   plat={twitch:null,kick:null}; renderConn();
   connectTwitch();
   connectKick();
+  sourceWatch=setInterval(watchSources, 20000);
 }
 
 /* ============================================================
