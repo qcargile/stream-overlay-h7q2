@@ -6,7 +6,7 @@
 <title>Subathon Overlay</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Chakra+Petch:wght@500;600;700&family=Press+Start+2P&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Chakra+Petch:wght@500;600;700&family=Press+Start+2P&family=Fredoka:wght@500;600;700&family=Anton&family=Bangers&family=Bebas+Neue&family=Bungee&family=Luckiest+Guy&family=Righteous&family=Russo+One&family=Titan+One&family=Passion+One:wght@700;900&family=Poppins:wght@600;700;800&family=Kanit:wght@600;700&family=Orbitron:wght@700;800&family=Audiowide&family=Rubik+Mono+One&family=Paytone+One&family=Concert+One&family=Montserrat:wght@700;800&family=Nunito:wght@700;800&display=swap" rel="stylesheet" />
 <style>
   /* ============================================================
      EDIT: open with ?edit=1 (or click the pencil). Click any piece
@@ -95,6 +95,9 @@
   #marqueeBox { position:fixed; z-index:54; border:1.5px dashed #4fe9ff; background:rgba(79,233,255,.12); pointer-events:none; border-radius:4px; }
   #guideV,#guideH { position:fixed; z-index:53; background:#ff5fc8; display:none; pointer-events:none; box-shadow:0 0 4px #ff5fc8; }
   #guideV { top:0; bottom:0; width:1px; } #guideH { left:0; right:0; height:1px; }
+  #groupBox { position:fixed; z-index:54; border:1.5px dashed rgba(79,233,255,.7); pointer-events:none; display:none; border-radius:4px; }
+  #groupBox.on { display:block; }
+  #groupBox .grs { position:absolute; right:-9px; bottom:-9px; width:20px; height:20px; border-radius:5px; background:#4fe9ff; border:2px solid #0c0a1f; box-shadow:0 0 6px #4fe9ff; cursor:nwse-resize; pointer-events:auto; }
 
   #editBtn { display:none; position:fixed; top:16px; right:16px; z-index:60; width:42px; height:42px; border-radius:12px; border:1px solid rgba(79,233,255,.5); background:rgba(8,7,20,.9); color:#fff; font-size:18px; cursor:pointer; }
   #editBtn:hover { background:rgba(79,233,255,.25); }
@@ -183,6 +186,7 @@
   <div id="floatLayer"></div>
   <div id="guideV"></div>
   <div id="guideH"></div>
+  <div id="groupBox"><div class="grs" id="grsHandle"></div></div>
 
   <button id="editBtn" title="Edit overlay">&#9998;</button>
   <button id="toolsBtn" title="Show / hide tools (or press H)">&#9881;</button>
@@ -409,7 +413,7 @@ function fmtAdd(sec){ const m=Math.floor(sec/60),s=sec%60; return m+":"+String(s
 /* ============================================================
    ELEMENTS
    ============================================================ */
-const FONTS = ["Chakra Petch","Baloo 2","Fredoka","Press Start 2P"];
+const FONTS = ["Chakra Petch","Baloo 2","Fredoka","Poppins","Montserrat","Nunito","Kanit","Bebas Neue","Anton","Bangers","Luckiest Guy","Righteous","Russo One","Titan One","Passion One","Paytone One","Concert One","Bungee","Orbitron","Audiowide","Rubik Mono One","Press Start 2P"];
 function nid(){ return "el_"+Math.random().toString(36).slice(2,8); }
 
 const ELEMENT_BASE = {
@@ -525,7 +529,7 @@ function renderAll(){
   renderLayers();
 }
 function renderOne(id){ const el=elById(id); if(!el) return; const node=nodes[id]; if(!node){ renderAll(); return; } node.className="el "+el.type+(isSel(id)?" sel":""); if(el.type==="box"){ node.classList.toggle("ring",!!el.ring); node.classList.toggle("glow",!!el.glow);} renderInner(node,el); styleCommon(node,el); }
-function updateLive(){ elements.forEach(el=>{ const node=nodes[el.id]; if(!node) return; if(el.type==="value") setValueContent(node,el); else if(el.type==="bar") updateBar(node,el); else if(el.type==="fill") updateFill(node,el); else if(el.type==="milestones") renderMilestones(node,el); }); applyContrast(); }
+function updateLive(){ elements.forEach(el=>{ const node=nodes[el.id]; if(!node) return; if(el.type==="value") setValueContent(node,el); else if(el.type==="bar") updateBar(node,el); else if(el.type==="fill") updateFill(node,el); else if(el.type==="milestones") renderMilestones(node,el); }); applyContrast(); updateGroupBox(); }
 function lighten(hex){ try{ const n=parseInt(String(hex).replace("#",""),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255; const f=0.62; r=Math.round(r+(255-r)*f); g=Math.round(g+(255-g)*f); b=Math.round(b+(255-b)*f); return "#"+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); }catch(e){ return "#ffffff"; } }
 function overFill(el){ const en=nodes[el.id]; if(!en) return false; const ecx=el.x+en.offsetWidth/2, ecy=el.y+en.offsetHeight/2; for(let i=0;i<elements.length;i++){ const f=elements[i]; if(f.type!=="fill") continue; const v=getValue(f.bind); const pct=f.goal>0?Math.max(0,Math.min(1,v/f.goal)):0; let x0,x1,y0,y1; if(f.dir==="v"){ x0=f.x; x1=f.x+f.w; y1=f.y+f.h; y0=y1-f.h*pct; } else { x0=f.x; x1=f.x+f.w*pct; y0=f.y; y1=f.y+f.h; } if(ecx>=x0&&ecx<=x1&&ecy>=y0&&ecy<=y1) return true; } return false; }
 function applyContrast(){ elements.forEach(el=>{ if(!el.contrast) return; if(el.type!=="icon"&&el.type!=="text"&&el.type!=="value") return; const node=nodes[el.id]; if(!node) return; const col=overFill(el)?(el.altColor||lighten(el.color)):el.color; if(el.type==="icon"){ const p=node.querySelector("svg path"); if(p) p.setAttribute("fill",col); const em=node.querySelector(".emoji"); if(em) em.style.color=col; } node.style.color=col; }); }
@@ -549,7 +553,7 @@ function floatTime(sec,color){ const el=document.createElement("div"); el.classN
    ============================================================ */
 let selection=[], drag=null, marquee=null;
 function isSel(id){ return selection.indexOf(id)>=0; }
-function applySelClasses(){ Object.entries(nodes).forEach(([k,n])=>n.classList.toggle("sel", isSel(k))); document.body.classList.toggle("single-sel", selection.length===1); highlightLayers(); }
+function applySelClasses(){ Object.entries(nodes).forEach(([k,n])=>n.classList.toggle("sel", isSel(k))); document.body.classList.toggle("single-sel", selection.length===1); highlightLayers(); updateGroupBox(); }
 function expandGroups(ids){ const gids=new Set(elements.filter(e=>ids.indexOf(e.id)>=0&&e.group).map(e=>e.group)); const out=new Set(ids); if(gids.size) elements.forEach(e=>{ if(e.group&&gids.has(e.group)) out.add(e.id); }); return [...out]; }
 function setSelection(ids, expand){ selection=(expand===false?ids.slice():expandGroups(ids)); applySelClasses(); renderSelPanel(); }
 function selectEl(id){ setSelection(id?[id]:[]); }
@@ -680,13 +684,17 @@ function snapMove(dx,dy,noSnap){
   return {dx,dy};
 }
 function startResize(e, id){ const el=elById(id), node=nodes[id]; drag={ mode:"resize", id, sx:e.clientX, sy:e.clientY, ow:el.w||node.offsetWidth, oh:el.h||node.offsetHeight, osize:el.size||40 }; }
+function selBounds(){ let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; selection.forEach(id=>{ const n=nodes[id], el=elById(id); if(!n||!el) return; const w=n.offsetWidth, h=n.offsetHeight; if(el.x<x0)x0=el.x; if(el.y<y0)y0=el.y; if(el.x+w>x1)x1=el.x+w; if(el.y+h>y1)y1=el.y+h; }); return {x0,y0,w:x1-x0,h:y1-y0}; }
+function updateGroupBox(){ const gb=$("groupBox"); if(!gb) return; const on = selection.length>1 && (document.body.classList.contains("editing")||document.body.classList.contains("moving")); gb.classList.toggle("on", on); if(!on) return; const b=selBounds(); if(b.w<=0) return; gb.style.left=b.x0+"px"; gb.style.top=b.y0+"px"; gb.style.width=b.w+"px"; gb.style.height=b.h+"px"; }
+function startGroupResize(e){ const b=selBounds(); const items=selection.map(id=>{ const el=elById(id); return el?{id, x0:el.x, y0:el.y, w0:el.w, h0:el.h, size0:el.size, round0:el.round, letter0:el.letter}:null; }).filter(Boolean); drag={ mode:"gresize", sx:e.clientX, sy:e.clientY, ax:b.x0, ay:b.y0, bw:b.w, bh:b.h, items }; }
 function startMarquee(e){ e.preventDefault(); const add=e.ctrlKey||e.metaKey||e.shiftKey; marquee={ sx:e.clientX, sy:e.clientY, base:add?selection.slice():[] }; const b=document.createElement("div"); b.id="marqueeBox"; document.body.appendChild(b); marquee.box=b; if(!add) setSelection([]); moveMarquee(e.clientX,e.clientY); }
 function moveMarquee(cx,cy){ const x=Math.min(marquee.sx,cx),y=Math.min(marquee.sy,cy),w=Math.abs(cx-marquee.sx),h=Math.abs(cy-marquee.sy); const b=marquee.box; b.style.left=x+"px"; b.style.top=y+"px"; b.style.width=w+"px"; b.style.height=h+"px"; return {x,y,w,h}; }
 
 document.addEventListener("mousemove", e=>{
   if(drag){
     let dx=e.clientX-drag.sx, dy=e.clientY-drag.sy;
-    if(drag.mode==="move"){ const s=snapMove(dx,dy,e.altKey); dx=s.dx; dy=s.dy; drag.items.forEach(it=>{ const el=elById(it.id); if(!el) return; el.x=Math.max(0,Math.round(it.ox+dx)); el.y=Math.max(0,Math.round(it.oy+dy)); styleCommon(nodes[it.id],el); }); if(selection.length===1) syncProps(elById(selection[0])); }
+    if(drag.mode==="gresize"){ const od=Math.hypot(drag.bw,drag.bh)||1; const nd=Math.hypot(Math.max(8,drag.bw+dx),Math.max(8,drag.bh+dy)); let s=Math.max(0.1, nd/od); drag.items.forEach(it=>{ const el=elById(it.id); if(!el) return; el.x=Math.max(0,Math.round(drag.ax+(it.x0-drag.ax)*s)); el.y=Math.max(0,Math.round(drag.ay+(it.y0-drag.ay)*s)); if(it.w0!=null) el.w=Math.max(4,Math.round(it.w0*s)); if(it.h0!=null) el.h=Math.max(4,Math.round(it.h0*s)); if(it.size0!=null) el.size=Math.max(6,Math.round(it.size0*s)); if(it.round0!=null) el.round=Math.max(0,Math.round(it.round0*s)); if(it.letter0!=null) el.letter=Math.round(it.letter0*s); renderOne(el.id); }); selection.forEach(id=>{ if(nodes[id]) nodes[id].classList.add("sel"); }); updateGroupBox(); return; }
+    if(drag.mode==="move"){ const s=snapMove(dx,dy,e.altKey); dx=s.dx; dy=s.dy; drag.items.forEach(it=>{ const el=elById(it.id); if(!el) return; el.x=Math.max(0,Math.round(it.ox+dx)); el.y=Math.max(0,Math.round(it.oy+dy)); styleCommon(nodes[it.id],el); }); updateGroupBox(); if(selection.length===1) syncProps(elById(selection[0])); }
     else { const el=elById(drag.id); if(!el) return; if(el.type==="text"||el.type==="value"){ el.size=Math.max(8,Math.round(drag.osize+dx*0.4)); renderOne(el.id); } else if(el.type==="icon"){ el.size=Math.max(10,Math.round(drag.osize+dx*0.5)); renderOne(el.id); } else { el.w=Math.max(40,Math.round(drag.ow+dx)); el.h=Math.max(10,Math.round(drag.oh+dy)); styleCommon(nodes[drag.id],el); } syncProps(el); }
     return;
   }
@@ -697,9 +705,10 @@ document.addEventListener("mousemove", e=>{
   }
 });
 document.addEventListener("mouseup", ()=>{
-  if(drag){ saveEls(); drag=null; hideGuides(); }
+  if(drag){ saveEls(); drag=null; hideGuides(); updateGroupBox(); }
   if(marquee){ if(marquee.box) marquee.box.remove(); setSelection(selection, true); marquee=null; }
 });
+$("grsHandle").addEventListener("mousedown", e=>{ if(selection.length>1){ e.preventDefault(); e.stopPropagation(); startGroupResize(e); } });
 function syncProps(el){ if(el && document.body.classList.contains("editing") && selection.length===1 && selection[0]===el.id) buildProps(el); }
 
 function canDrag(){ return true; }
