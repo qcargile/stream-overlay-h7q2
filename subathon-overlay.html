@@ -439,7 +439,7 @@ const TEMPLATES = {
   ]; }
 };
 
-const DEFAULT_LAYOUT = [{"id":"el_7i9k73","x":850,"y":263,"type":"fill","w":318,"h":35,"bind":"subs","goal":50,"dir":"h","fill":"#824dff","empty":100,"accent":"#824dff","round":8,"ring":true,"glow":true,"label":"BIKINI STREAM NOW","showLabel":true,"showCount":true,"countFormat":"current/total","textColor":"#ffffff","font":"Fredoka","size":22,"group":"g_a98db"},{"id":"el_ex1el7","x":1149,"y":270,"type":"icon","w":0,"h":0,"kind":"svg","svg":"heart","emoji":"⭐","color":"#824dff","size":19,"spin":false,"contrast":true,"group":"g_a98db"},{"id":"el_jz7hvr","x":850,"y":271,"type":"icon","w":0,"h":0,"kind":"svg","svg":"heart","emoji":"⭐","color":"#824dff","size":19,"spin":false,"contrast":true,"group":"g_a98db"}];
+const DEFAULT_LAYOUT = [];
 let elements;
 try { elements = JSON.parse(localStorage.getItem(K.els)||"null"); } catch(e){ elements=null; }
 if (!Array.isArray(elements) || !elements.length) { elements = JSON.parse(JSON.stringify(DEFAULT_LAYOUT)); }
