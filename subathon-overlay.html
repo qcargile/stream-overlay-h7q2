@@ -419,7 +419,7 @@ const ELEMENT_BASE = {
   bar:   { type:"bar", w:320, h:26, bind:"subs", goal:50, fill:"#4fe9ff", track:"#241f3a", round:13, showLabel:true },
   box:   { type:"box", w:320, h:96, accent:"#4fe9ff", bgDark:72, round:22, ring:true, glow:true },
   milestones: { type:"milestones", w:300, h:0, bind:"subs", items:"300 | Hair color\n400 | Body paint\n500 | Tattoo", font:"Baloo 2", size:18, color:"#ffffff", accent:"#ff5fc8" },
-  fill: { type:"fill", w:330, h:64, bind:"subs", goal:50, goals:"", gradient:false, fill2:"#ff5fc8", gloss:false, dir:"h", fill:"#ff5fc8", empty:55, accent:"#ff5fc8", round:30, ring:true, glow:true, label:"GOAL", showLabel:true, showCount:true, countFormat:"current/total", textColor:"#ffffff", font:"Baloo 2", size:22 }
+  fill: { type:"fill", w:330, h:64, bind:"subs", goal:50, goals:"", gradient:false, fill2:"#ff5fc8", fill3:"", gloss:false, dir:"h", fill:"#ff5fc8", empty:55, accent:"#ff5fc8", round:30, ring:true, glow:true, label:"GOAL", showLabel:true, showCount:true, countFormat:"current/total", textColor:"#ffffff", font:"Baloo 2", size:22 }
 };
 function makeEl(type, x, y, over){ return Object.assign({id:nid(), x:Math.round(x), y:Math.round(y)}, JSON.parse(JSON.stringify(ELEMENT_BASE[type])), over||{}); }
 
@@ -433,9 +433,9 @@ const TEMPLATES = {
   subBreakdown:(x,y)=>[ makeEl("box",x,y,{w:320,h:118,accent:"#4fe9ff"}), makeEl("icon",x+18,y+22,{svg:"star",color:"#4fe9ff",size:40}), makeEl("value",x+70,y+16,{bind:"subs",size:46,color:"#ffffff"}), makeEl("text",x+72,y+60,{text:"TOTAL SUBS",size:12,color:"#4fe9ff",letter:2}), makeEl("text",x+200,y+24,{text:"Twitch",size:12,color:"#9146ff"}), makeEl("value",x+200,y+38,{bind:"subsTwitch",size:22,color:"#9146ff"}), makeEl("text",x+200,y+70,{text:"Kick",size:12,color:"#53fc18"}), makeEl("value",x+200,y+84,{bind:"subsKick",size:22,color:"#53fc18"}) ],
   goalFill:(x,y)=>[ makeEl("fill",x,y,{w:330,h:62,bind:"subs",goal:50,fill:"#ff5fc8",accent:"#ff5fc8",label:"BIKINI STREAM",size:22,round:30,empty:55}) ],
   subathonBar:(x,y)=>{ const gid="g_"+Math.random().toString(36).slice(2,7); return [
-    makeEl("fill",x,y,{w:400,h:52,bind:"subs",goal:300,goals:"300, 400, 500, 600, 700, 800, 900, 1000",dir:"h",fill:"#8a5cff",gradient:true,fill2:"#ff4dc4",gloss:true,accent:"#b98bff",empty:100,round:26,ring:true,glow:true,label:"SUBATHON",showLabel:true,showCount:true,countFormat:"current/total",textColor:"#ffffff",font:"Fredoka",size:22,group:gid}),
-    makeEl("icon",x+18,y+16,{kind:"svg",svg:"heart",color:"#ff9ad4",size:22,contrast:true,altColor:"#ffffff",group:gid}),
-    makeEl("icon",x+360,y+16,{kind:"svg",svg:"heart",color:"#ff9ad4",size:22,contrast:true,altColor:"#ffffff",group:gid})
+    makeEl("fill",x,y,{w:400,h:52,bind:"subs",goal:300,goals:"300, 400, 500, 600, 700, 800, 900, 1000",dir:"h",fill:"#7d2081",gradient:true,fill2:"#e370f8",fill3:"#c442f9",gloss:false,accent:"#e26cfb",empty:100,round:26,ring:true,glow:true,label:"SUBATHON",showLabel:true,showCount:true,countFormat:"current/total",textColor:"#ffffff",font:"Fredoka",size:22,group:gid}),
+    makeEl("icon",x+18,y+15,{kind:"svg",svg:"heart",color:"#ff8fe0",size:22,group:gid}),
+    makeEl("icon",x+360,y+15,{kind:"svg",svg:"heart",color:"#ff8fe0",size:22,group:gid})
   ]; }
 };
 
@@ -495,7 +495,7 @@ function updateFill(node, el){
   const pct=Math.max(0,Math.min(100, target>0?v/target*100:0));
   node.classList.toggle("vert", el.dir==="v");
   const lvl=node.querySelector(".filllevel");
-  if(lvl){ const bg=el.gradient?("linear-gradient("+(el.dir==="v"?"0deg":"90deg")+","+el.fill+","+(el.fill2||el.fill)+")"):el.fill; lvl.style.background=bg; lvl.style.boxShadow="0 0 16px "+el.fill; if(el.dir==="v"){ lvl.style.top=""; lvl.style.right="0"; lvl.style.width=""; lvl.style.height=pct.toFixed(1)+"%"; } else { lvl.style.right=""; lvl.style.top="0"; lvl.style.bottom="0"; lvl.style.height=""; lvl.style.width=pct.toFixed(1)+"%"; } }
+  if(lvl){ let bg=el.fill; if(el.gradient){ const ang=el.dir==="v"?"0deg":"90deg"; bg=el.fill3?("linear-gradient("+ang+","+el.fill+","+(el.fill2||el.fill)+" 50%,"+el.fill3+")"):("linear-gradient("+ang+","+el.fill+","+(el.fill2||el.fill)+")"); } lvl.style.background=bg; lvl.style.boxShadow="0 0 16px "+(el.fill2||el.fill); if(el.dir==="v"){ lvl.style.top=""; lvl.style.right="0"; lvl.style.width=""; lvl.style.height=pct.toFixed(1)+"%"; } else { lvl.style.right=""; lvl.style.top="0"; lvl.style.bottom="0"; lvl.style.height=""; lvl.style.width=pct.toFixed(1)+"%"; } }
   const txt=node.querySelector(".filltext");
   if(txt){ const parts=[]; if(el.showLabel&&el.label) parts.push("<span>"+escapeHtml(el.label)+"</span>"); if(el.showCount){ let c; const val=(el.bind==="tips"?Number(v).toFixed(0):Math.round(v)); if(el.countFormat==="percent") c=Math.round(pct)+"%"; else if(el.countFormat==="current") c=Number(val).toLocaleString(); else c=val+"/"+target; parts.push("<span>"+c+"</span>"); } txt.innerHTML=parts.join("&nbsp;&nbsp;"); }
   if(tiered){
@@ -640,7 +640,8 @@ function buildProps(el){
     const d=sel(el.dir,[["h","Left → right"],["v","Bottom → up"]]); d.onchange=()=>upd("dir",d.value); P.appendChild(field("Fill direction",d));
     const f=inp("color",el.fill); f.oninput=()=>upd("fill",f.value); P.appendChild(field("Fill color",f));
     const grd=chk(el.gradient); grd.onchange=()=>upd("gradient",grd.checked); const tg=document.createElement("div"); tg.className="toggle"; tg.appendChild(grd); const sg=document.createElement("span"); sg.textContent="Gradient fill"; tg.appendChild(sg); P.appendChild(tg);
-    const f2=inp("color",el.fill2||"#ff5fc8"); f2.oninput=()=>upd("fill2",f2.value); P.appendChild(field("Gradient 2nd color",f2));
+    const f2=inp("color",el.fill2||"#ff5fc8"); f2.oninput=()=>upd("fill2",f2.value); P.appendChild(field("Gradient middle color",f2));
+    const f3=inp("color",el.fill3||el.fill2||"#ff5fc8"); f3.oninput=()=>upd("fill3",f3.value); P.appendChild(field("Gradient end color (blank = 2-color)",f3));
     const gloss=chk(el.gloss); gloss.onchange=()=>upd("gloss",gloss.checked); const tgl=document.createElement("div"); tgl.className="toggle"; tgl.appendChild(gloss); const sgl=document.createElement("span"); sgl.textContent="Glossy sheen"; tgl.appendChild(sgl); P.appendChild(tgl);
     const ac=inp("color",el.accent); ac.oninput=()=>upd("accent",ac.value); P.appendChild(field("Ring / glow color",ac));
     const em=inp("range",el.empty,{min:0,max:100,step:1}); em.oninput=()=>upd("empty",num(em.value,el.empty)); P.appendChild(field("Empty background darkness",em));
